@@ -12,8 +12,8 @@ import { ProtectedRoute } from "./lib/protected-route";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/" component={HomePage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -22,7 +22,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+      <ThemeProvider defaultTheme="system">
         <AuthProvider>
           <Router />
           <Toaster />

@@ -18,17 +18,22 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      username: "",
+      password: ""
+    }
   });
 
+  // If user is already logged in, redirect to home
   if (user) {
     return <Redirect to="/" />;
   }
 
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
     if (isLogin) {
-      loginMutation.mutate(data);
+      await loginMutation.mutateAsync(data);
     } else {
-      registerMutation.mutate(data);
+      await registerMutation.mutateAsync(data);
     }
   };
 

@@ -15,6 +15,7 @@ import { ChatSidebar } from "@/components/chat-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Redirect } from "wouter";
 
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
@@ -84,6 +85,11 @@ export default function HomePage() {
       inputRef.current?.setSelectionRange(cursor + 2, cursor + 2);
     }, 0);
   };
+
+  // If no user, redirect to auth page
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
 
   return (
     <div className="h-screen flex">
