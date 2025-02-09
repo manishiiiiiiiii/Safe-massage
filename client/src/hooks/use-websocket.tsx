@@ -2,12 +2,21 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
+type MessageStatus = "sending" | "sent" | "delivered" | "read";
+type MessageWithStatus = {
+  id: number;
+  content: string;
+  status: MessageStatus;
+};
+
 export function useWebSocket() {
   const { toast } = useToast();
   const { user } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const [messageStatuses, setMessageStatuses] = useState<Record<number, MessageStatus>>({});
+  const messageQueueRef = useRef<MessageWithStatus[]>([]);
 
   const connect = useCallback(() => {
     if (!user) return; // Only connect if user is authenticated
@@ -19,6 +28,17 @@ export function useWebSocket() {
     ws.onopen = () => {
       console.log("WebSocket connected");
       setIsConnected(true);
+      // Send any queued messages
+      messageQueueRef.current.forEach(msg => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'message',
+            ...msg
+          }));
+        }
+      });
+      messageQueueRef.current = [];
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -56,16 +76,51 @@ export function useWebSocket() {
   }, [connect]);
 
   const sendMessage = useCallback((message: any) => {
+    const messageWithStatus: MessageWithStatus = {
+      ...message,
+      status: "sending",
+      id: Date.now(), // Temporary ID for tracking
+    };
+
+    setMessageStatuses(prev => ({
+      ...prev,
+      [messageWithStatus.id]: "sending"
+    }));
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
+      wsRef.current.send(JSON.stringify({
+        type: 'message',
+        ...messageWithStatus
+      }));
     } else {
+      // Queue message for when connection is restored
+      messageQueueRef.current.push(messageWithStatus);
       toast({
         title: "Connection Error",
         description: "Not connected to chat server. Message will be sent when connection is restored.",
         variant: "destructive",
       });
     }
+
+    return messageWithStatus.id; // Return ID for tracking
   }, [toast]);
+
+  const updateMessageStatus = useCallback((messageId: number, status: MessageStatus) => {
+    setMessageStatuses(prev => ({
+      ...prev,
+      [messageId]: status
+    }));
+  }, []);
+
+  const sendTypingStatus = useCallback((isTyping: boolean) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'typing',
+        isTyping,
+        userId: user?.id
+      }));
+    }
+  }, [user]);
 
   const subscribe = useCallback((callback: (data: any) => void) => {
     if (!wsRef.current) return;
@@ -73,12 +128,33 @@ export function useWebSocket() {
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        callback(data);
+
+        // Handle different message types
+        switch (data.type) {
+          case 'messageStatus':
+            updateMessageStatus(data.messageId, data.status);
+            break;
+          case 'typing':
+            // Handle typing indicator
+            break;
+          default:
+            callback(data);
+        }
       } catch (error) {
         console.error("Error parsing message:", error);
       }
     };
-  }, []);
+  }, [updateMessageStatus]);
 
-  return { sendMessage, subscribe, isConnected };
+  const getMessageStatus = useCallback((messageId: number) => {
+    return messageStatuses[messageId] || "sending";
+  }, [messageStatuses]);
+
+  return { 
+    sendMessage, 
+    subscribe, 
+    isConnected, 
+    sendTypingStatus,
+    getMessageStatus
+  };
 }
