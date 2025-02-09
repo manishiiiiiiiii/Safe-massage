@@ -73,7 +73,7 @@ export function ChatSidebar({ onSelectUser, selectedUserId }: ChatSidebarProps) 
             >
               <div className="relative">
                 <Avatar>
-                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarImage src={user.avatarUrl || undefined} />
                 </Avatar>
                 {user.isOnline && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
@@ -82,7 +82,7 @@ export function ChatSidebar({ onSelectUser, selectedUserId }: ChatSidebarProps) 
               {isExpanded && (
                 <div className="flex-1 text-left">
                   <p className="font-medium">{user.username}</p>
-                  {!user.isOnline && (
+                  {!user.isOnline && user.lastSeen && (
                     <p className="text-xs text-muted-foreground">
                       Last seen {format(new Date(user.lastSeen), "HH:mm")}
                     </p>

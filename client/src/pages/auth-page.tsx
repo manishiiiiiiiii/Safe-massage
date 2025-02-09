@@ -10,9 +10,11 @@ import { Redirect } from "wouter";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const { theme } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
@@ -31,9 +33,47 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="flex-1 p-8 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col lg:flex-row relative overflow-hidden">
+      {/* Animated background circles */}
+      <motion.div 
+        className="absolute inset-0 opacity-20 dark:opacity-10 overflow-hidden pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.2 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.div
+          className="absolute w-[500px] h-[500px] rounded-full bg-primary"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, -100, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            easings: ["easeInOut"],
+          }}
+          style={{ top: "10%", left: "60%" }}
+        />
+        <motion.div
+          className="absolute w-[300px] h-[300px] rounded-full bg-primary"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            easings: ["easeInOut"],
+          }}
+          style={{ top: "50%", left: "20%" }}
+        />
+      </motion.div>
+
+      {/* Login/Register Form */}
+      <div className="flex-1 p-4 sm:p-8 flex items-center justify-center z-10">
+        <Card className="w-full max-w-md backdrop-blur-sm bg-card/95">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">
               {isLogin ? "Welcome back" : "Create an account"}
@@ -74,10 +114,12 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Hero Section - Only visible on larger screens */}
       <motion.div 
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="hidden lg:flex flex-1 bg-primary items-center justify-center text-primary-foreground"
+        className="hidden lg:flex flex-1 bg-primary items-center justify-center text-primary-foreground relative z-10"
       >
         <div className="max-w-md p-8 text-center">
           <MessageSquare className="w-16 h-16 mx-auto mb-6" />
